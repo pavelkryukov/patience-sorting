@@ -1,2 +1,2 @@
-# patience_sorting
-C++ implementation of patience sorting
+# Patience Sorting
+C++ implementation of [patience sorting](https://en.wikipedia.org/wiki/Patience_sorting)
