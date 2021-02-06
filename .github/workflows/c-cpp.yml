@@ -1,0 +1,21 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      run: g++ test.cpp -O0 -g --coverage -fprofile-arcs -ftest-coverage -g -o test
+    - name: run
+      run: ./test
+    - name: Codecov
+      uses: codecov/codecov-action@v1.2.1
