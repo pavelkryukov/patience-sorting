@@ -1,4 +1,4 @@
-/*
+0/*
  * MIT License
  * 
  * Copyright (c) 2021 Pavel I. Kryukov
@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include <patience_sort.h>
+#include "patience_sort.h"
 
 #include <iostream>
 
