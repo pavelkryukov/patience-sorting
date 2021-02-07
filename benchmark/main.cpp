@@ -90,12 +90,12 @@ static void list_qsort(std::list<int>& list)
     list.sort();
 }
 
-BENCHMARK_TEMPLATE(sorting, std::vector, std::sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
-BENCHMARK_TEMPLATE(sorting, std::vector, merge_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
-BENCHMARK_TEMPLATE(sorting, std::vector, patience_sort_cont)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
-BENCHMARK_TEMPLATE(sorting, std::vector, patience_sort_list)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(sorting, std::vector, std::sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(sorting, std::vector, merge_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(sorting, std::vector, patience_sort_cont)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(sorting, std::vector, patience_sort_list)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 
-BENCHMARK_TEMPLATE(list_sorting, list_qsort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
-BENCHMARK_TEMPLATE(list_sorting, patience_sort<std::list<int>>)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(list_sorting, list_qsort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(list_sorting, patience_sort<std::list<int>>)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 
 BENCHMARK_MAIN()
