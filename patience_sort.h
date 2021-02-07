@@ -23,21 +23,20 @@
  */
 
 #include <algorithm>
-#include <cmath>
+#include <deque>
 #include <vector>
 
 template<typename RandomIt>
 class PatienceSort
 {
     using T = typename RandomIt::value_type;
-    using DeckIt = typename std::vector<std::vector<T>>::iterator;
+    using DeckIt = typename std::deque<std::deque<T>>::iterator;
 public:
     PatienceSort(RandomIt begin, RandomIt end)
         : begin(begin)
         , end(end)
     {
-        root = (int)std::sqrt(end - begin);
-        decks.reserve(root);
+
     }
 
     auto sort()
@@ -65,11 +64,10 @@ private:
     auto allocate_new_deck()
     {
         decks.resize(decks.size() + 1);
-        decks.back().reserve(root);
         return decks.end() - 1;
     }
 
-    auto find_deck(const T& val, DeckIt begin, DeckIt end) const
+    auto find_deck(const T& val, DeckIt begin, DeckIt end) const noexcept
     {
         if (end == begin)
             return begin;
@@ -81,14 +79,14 @@ private:
         return mid->back() < val ? find_deck(val, begin, mid) : find_deck(val, mid, end);
     }
 
-    void merge_decks()
+    void merge_decks() noexcept
     {
         auto mid = begin;
         for (auto& deck : decks)
             mid = merge_deck(deck, mid);
     }
 
-    auto merge_deck(std::vector<T>& deck, RandomIt mid)
+    auto merge_deck(std::deque<T>& deck, RandomIt mid) noexcept
     {
         auto new_mid = std::copy(deck.begin(), deck.end(), mid);
         std::inplace_merge(begin, mid, new_mid);
@@ -96,8 +94,7 @@ private:
     }
 
     RandomIt begin, end;
-    size_t root;
-    std::vector<std::vector<T>> decks;
+    std::deque<std::deque<T>> decks;
 };
 
 template<typename RandomIt>

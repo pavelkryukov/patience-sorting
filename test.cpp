@@ -25,17 +25,15 @@
 #include "patience_sort.h"
 
 #include <iostream>
+#include <list>
 
 int main()
 {
-    std::vector<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
+    std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
     patience_sort(example.begin(), example.end());
 
     bool result = std::is_sorted(example.begin(), example.end());
-    
-    for (const auto& e : example)
-        std::cout << e << " ";
-    
+
     std::cout << (result ? "Success\n" : "Failure\n");
     return result ? 0 : 1;
 }
