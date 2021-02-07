@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: g++ test.cpp -O0 -g --coverage -fprofile-arcs -ftest-coverage -g -o test
+      run: g++ test.cpp -O0 -g --coverage -fprofile-arcs -ftest-coverage -g -o test -std=c++17
     - name: run
       run: ./test
     - name: Codecov
