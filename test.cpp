@@ -43,9 +43,17 @@ static bool check_list()
     return std::is_sorted(example.begin(), example.end());
 }
 
+static bool check_list_inplace()
+{
+    std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
+    patience_sort(example);
+
+    return std::is_sorted(example.begin(), example.end());
+}
+
 int main()
 {
-    bool result = check_cont() && check_list();
+    bool result = check_cont() && check_list() && check_list_inplace();
 
     std::cout << (result ? "Success\n" : "Failure\n");
     return result ? 0 : 1;

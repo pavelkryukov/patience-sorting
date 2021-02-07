@@ -25,28 +25,25 @@
 #include <algorithm>
 #include <deque>
 #include <list>
-#include <vector>
 
 template<typename T>
 class ContiniousDeck
 {
 public:
-    using DeckIt = typename std::deque<std::deque<T>>::iterator;
-
     template<typename RandomIt>
     void produce_output(RandomIt begin) noexcept
     {
         auto mid = begin;
-        for (auto& deck : decks)
-            mid = merge_deck(deck, begin, mid);
+        for (auto& deck : storage)
+            mid = merge(deck, begin, mid);
     }
 
 protected:
-    std::deque<std::deque<T>> decks;
+    std::deque<std::deque<T>> storage;
 
 private:
     template<typename RandomIt>
-    auto merge_deck(std::deque<T>& deck, RandomIt begin, RandomIt mid) noexcept
+    static auto merge(std::deque<T>& deck, RandomIt begin, RandomIt mid) noexcept
     {
         auto new_mid = std::copy(deck.begin(), deck.end(), mid);
         std::inplace_merge(begin, mid, new_mid);
@@ -58,52 +55,51 @@ template<typename T>
 class SparceDeck
 {
 public:
-    using DeckIt = typename std::deque<std::list<T>>::iterator;
-
     template<typename RandomIt>
     void produce_output(RandomIt begin) noexcept
     {
-        std::list<T> result;
-        for (auto& deck : decks)
-            result.merge(deck);
-
+        auto result = produce_output();
         std::move(result.begin(), result.end(), begin);
     }
 
+    template<typename List>
+    void produce_output_list(List& list) noexcept
+    {
+        list.splice(list.begin(), produce_output());
+    }
+
 protected:
-    std::deque<std::list<T>> decks;
+    std::deque<std::list<T>> storage;
+
+private:
+    auto produce_output() noexcept
+    {
+        std::list<T> result;
+        for (auto& deck : storage)
+            result.merge(deck);
+        
+        return result;
+    }
 };
 
-template<typename RandomIt, template<typename> class Deck>
-class PatienceSort : private Deck<typename RandomIt::value_type>
+template<typename T, template<typename> class Deck>
+class DeckFinder : public Deck<T>
 {
-    using T = typename RandomIt::value_type;
-    using DeckIt = typename Deck<T>::DeckIt;
 public:
-    auto sort(RandomIt begin, RandomIt end)
+    auto get_deck_pointer(const T& val)
     {
-        for (auto it = begin; it != end; ++it)
-            fill_to_deck(std::move(*it));
-
-        this->produce_output(begin);
+        auto res = find_deck(val, this->storage.begin(), this->storage.end());
+        return res != this->storage.end() ? res : allocate_new_deck();
     }
 
 private:
-    void fill_to_deck(T val)
-    {
-        auto res = find_deck(val, this->decks.begin(), this->decks.end());
-        if (res == this->decks.end())
-            res = allocate_new_deck();
-
-        res->emplace_back(std::move(val));
-    }
-
     auto allocate_new_deck()
     {
-        this->decks.resize(this->decks.size() + 1);
-        return this->decks.end() - 1;
+        this->storage.resize(this->storage.size() + 1);
+        return this->storage.end() - 1;
     }
 
+    template<typename DeckIt>
     auto find_deck(const T& val, DeckIt begin, DeckIt end) const noexcept
     {
         if (end == begin)
@@ -117,14 +113,37 @@ private:
     }
 };
 
+template<typename RandomIt, template<typename T> class Deck>
+auto patience_sort_generic(RandomIt begin, RandomIt end)
+{
+    DeckFinder<typename RandomIt::value_type, Deck> deck;
+    for (auto it = begin; it != end; ++it)
+        deck.get_deck_pointer(*it)->emplace_back(std::move(*it));
+
+    deck.produce_output(begin);
+}
+
 template<typename RandomIt>
 auto patience_sort_cont(RandomIt begin, RandomIt end)
 {
-    PatienceSort<RandomIt, ContiniousDeck>().sort(begin, end);
+    patience_sort_generic<RandomIt, ContiniousDeck>(begin, end);
 }
 
 template<typename RandomIt>
 auto patience_sort_list(RandomIt begin, RandomIt end)
 {
-    PatienceSort<RandomIt, SparceDeck>().sort(begin, end);
+    patience_sort_generic<RandomIt, SparceDeck>(begin, end);
+}
+
+template<typename List>
+auto patience_sort(List& list)
+{
+    DeckFinder<typename List::value_type, SparceDeck> deck;
+    for (auto it = list.begin(); it != list.end();) {
+        auto tmp = it++;
+        auto target = deck.get_deck_pointer(*tmp);
+        target->splice(target->end(), list, tmp);
+    }
+
+    deck.produce_output_list(list);
 }
