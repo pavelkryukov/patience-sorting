@@ -32,6 +32,10 @@ int main()
     patience_sort(example.begin(), example.end());
 
     bool result = std::is_sorted(example.begin(), example.end());
+    
+    for (const auto& e : example)
+        std::cout << e << " ";
+    
     std::cout << (result ? "Success\n" : "Failure\n");
     return result ? 0 : 1;
 }

@@ -30,6 +30,7 @@ template<typename RandomIt>
 class PatienceSort
 {
     using T = typename RandomIt::value_type;
+    using DeckIt = typename std::vector<std::vector<T>>::iterator;
 public:
     PatienceSort(RandomIt begin, RandomIt end)
         : begin(begin)
@@ -46,42 +47,38 @@ public:
     }
 
 private:
-    std::vector<T>* find_deck(const T& val)
-    {
-        for (auto& deck : decks)
-            if (deck.back() < val)
-                return &deck;
-                
-        return nullptr;
-    }
-
-    auto allocate_new_deck()
-    {
-        decks.resize(decks.size() + 1);
-        decks.back().reserve(root);
-        return &decks.back();
-    }
-
-    void fill_to_deck(T val)
-    {
-        auto deck = find_deck(val);
-        if (deck == nullptr)
-            deck = allocate_new_deck();
-
-        deck->emplace_back(std::move(val));
-    }
-
     void fill_decks()
     {      
         for (auto it = begin; it != end; ++it)
             fill_to_deck(std::move(*it));
     }
 
-    auto merge_deck(std::vector<T>& deck, RandomIt mid)
+    void fill_to_deck(T val)
     {
-        auto new_mid = std::copy(deck.begin(), deck.end(), mid);
-        std::inplace_merge(begin, mid, new_mid);
-        return new_mid;
+        auto res = find_deck(val, decks.begin(), decks.end());
+        if (res == decks.end())
+            res = allocate_new_deck();
+
+        res->emplace_back(std::move(val));
+    }
+
+    auto allocate_new_deck()
+    {
+        decks.resize(decks.size() + 1);
+        decks.back().reserve(root);
+        return decks.end() - 1;
+    }
+
+    auto find_deck(const T& val, DeckIt begin, DeckIt end) const
+    {
+        if (end == begin)
+            return begin;
+
+        if (end == begin + 1)
+            return begin->back() < val ? begin : end;
+
+        auto mid = std::next(begin, std::distance(begin, end) / 2);
+        return mid->back() < val ? find_deck(val, begin, mid) : find_deck(val, mid, end);
     }
 
     void merge_decks()
@@ -89,6 +86,13 @@ private:
         auto mid = begin;
         for (auto& deck : decks)
             mid = merge_deck(deck, mid);
+    }
+
+    auto merge_deck(std::vector<T>& deck, RandomIt mid)
+    {
+        auto new_mid = std::copy(deck.begin(), deck.end(), mid);
+        std::inplace_merge(begin, mid, new_mid);
+        return new_mid;
     }
 
     RandomIt begin, end;
