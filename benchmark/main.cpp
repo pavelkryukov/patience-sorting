@@ -24,30 +24,53 @@
 
 #include <benchmark/benchmark.h>
 
+#include <list>
 #include <random>
+#include <stdexcept>
 
 template<typename RandomIt> using SortingFunction = void(*)(RandomIt begin, RandomIt end);
-using VectorSortingFunction = SortingFunction<std::vector<int>::iterator>;
 
-static auto get_random_vector(size_t size)
+template<class RandomIt>
+static void merge_sort(RandomIt first, RandomIt last) noexcept
 {
-    std::vector<int> data(size);
-    std::iota(data.begin(), data.end(), 0);
-    std::mt19937 gen(100);
-    std::shuffle(data.begin(), data.end(), gen);
-    return data;
+    if (last - first <= 1)
+        return;
+
+    auto mid = first + (last - first) / 2;
+    merge_sort(first, mid);
+    merge_sort(mid, last);
+    std::inplace_merge(first, mid, last);
 }
 
-template<VectorSortingFunction func>
+template<typename Container>
+static auto shuffle(Container* c)
+{
+    std::mt19937 gen(100);
+    std::shuffle(c->begin(), c->end(), gen);
+}
+
+template<template<typename> typename Сontainer, SortingFunction<typename Сontainer<int>::iterator> func>
 static void sorting(benchmark::State& state)
 {
-    auto data = get_random_vector(state.range(0));
+    Сontainer<int> data(state.range(0));
+    std::iota(data.begin(), data.end(), 0);
 
-    for (auto _ : state)
+    for (auto _ : state) {
+        state.PauseTiming();
+        shuffle(&data);
+        state.ResumeTiming();
         func(data.begin(), data.end());
+    }
+
+    state.SetComplexityN(state.range(0));
 }
 
-BENCHMARK_TEMPLATE(sorting, std::sort)->RangeMultiplier(2)->Range(1, 1 << 20);
-BENCHMARK_TEMPLATE(sorting, patience_sort)->RangeMultiplier(2)->Range(1, 1 << 20);
+BENCHMARK_TEMPLATE(sorting, std::vector, std::sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(sorting, std::vector, merge_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(sorting, std::vector, patience_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+
+BENCHMARK_TEMPLATE(sorting, std::deque, std::sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(sorting, std::deque, merge_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
+BENCHMARK_TEMPLATE(sorting, std::deque, patience_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity();
 
 BENCHMARK_MAIN()
