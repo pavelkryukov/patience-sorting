@@ -27,12 +27,25 @@
 #include <iostream>
 #include <list>
 
-int main()
+static bool check_cont()
 {
     std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
-    patience_sort(example.begin(), example.end());
+    patience_sort_cont(example.begin(), example.end());
 
-    bool result = std::is_sorted(example.begin(), example.end());
+    return std::is_sorted(example.begin(), example.end());
+}
+
+static bool check_list()
+{
+    std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
+    patience_sort_list(example.begin(), example.end());
+
+    return std::is_sorted(example.begin(), example.end());
+}
+
+int main()
+{
+    bool result = check_cont() && check_list();
 
     std::cout << (result ? "Success\n" : "Failure\n");
     return result ? 0 : 1;
