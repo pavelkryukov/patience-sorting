@@ -29,7 +29,7 @@
 namespace Patience {
 
 template<typename T>
-bool default_compare(const T& lhs, const T& rhs)
+bool default_compare(const T& lhs, const T& rhs) noexcept
 {
     return lhs < rhs;
 }
@@ -147,17 +147,6 @@ private:
     Compare cmp;
 };
 
-template<typename RandomIt, template<typename, typename> class Deck>
-auto sort_generic(RandomIt begin, RandomIt end)
-{
-    using T = typename RandomIt::value_type;
-    Deck<T, bool(*)(const T&, const T&)> deck(default_compare<T>);
-    for (auto it = begin; it != end; ++it)
-        deck.get_deck_pointer(*it)->emplace_back(std::move(*it));
-
-    deck.produce_output(begin);
-}
-
 template<typename RandomIt, template<typename, typename> class Deck, typename Compare>
 auto sort_generic(RandomIt begin, RandomIt end, Compare cmp)
 {
@@ -174,7 +163,8 @@ auto sort_generic(RandomIt begin, RandomIt end, Compare cmp)
 template<typename RandomIt>
 auto patience_sort_cont(RandomIt begin, RandomIt end)
 {
-    Patience::sort_generic<RandomIt, Patience::ContiniousDeck>(begin, end);
+    using T = typename RandomIt::value_type;
+    Patience::sort_generic<RandomIt, Patience::ContiniousDeck>(begin, end, Patience::default_compare<T>);
 }
 
 template<typename RandomIt, typename Compare>
@@ -186,11 +176,12 @@ auto patience_sort_cont(RandomIt begin, RandomIt end, Compare cmp)
 template<typename RandomIt>
 auto patience_sort_list(RandomIt begin, RandomIt end)
 {
-    Patience::sort_generic<RandomIt, Patience::SparceDeck>(begin, end);
+    using T = typename RandomIt::value_type;
+    Patience::sort_generic<RandomIt, Patience::SparceDeck>(begin, end, Patience::default_compare<T>);
 }
 
 template<typename RandomIt, typename Compare>
-auto patience_sort_list(RandomIt begin, RandomIt end, Compare cmp = Patience::default_compare)
+auto patience_sort_list(RandomIt begin, RandomIt end, Compare cmp)
 {
     Patience::sort_generic<RandomIt, Patience::SparceDeck>(begin, end, cmp);
 }
@@ -212,5 +203,5 @@ template<typename List>
 auto patience_sort(List& list)
 {
     using T = typename List::value_type;
-    return patience_sort<List, bool(*)(const T&, const T&)>(list, Patience::default_compare<T>);
+    return patience_sort(list, Patience::default_compare<T>);
 }

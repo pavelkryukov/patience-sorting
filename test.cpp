@@ -27,7 +27,7 @@
 #include <iostream>
 #include <list>
 
-static bool compare(int a, int b) { return a > b; }
+static bool compare(int a, int b) noexcept { return a > b; }
 
 static bool check_cont()
 {
