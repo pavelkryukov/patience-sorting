@@ -63,8 +63,14 @@ static bool check_list_inplace()
 
 int main()
 {
-    bool result = check_cont() && check_list() && check_list_inplace();
+    for (auto f : {check_cont, check_list, check_list_inplace, check_inverse}) {
+        bool result = f();
+        if (!result) {
+            std::cout << "Failure\n";
+            return 1;
+        }
+    }
 
-    std::cout << (result ? "Success\n" : "Failure\n");
-    return result ? 0 : 1;
+    std::cout << "Success\n";
+    return 0;
 }
