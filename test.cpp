@@ -27,12 +27,22 @@
 #include <iostream>
 #include <list>
 
+static bool compare(int a, int b) { return a > b; }
+
 static bool check_cont()
 {
     std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
     patience_sort_cont(example.begin(), example.end());
 
     return std::is_sorted(example.begin(), example.end());
+}
+
+static bool check_inverse()
+{
+    std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
+    patience_sort_cont(example.begin(), example.end(), compare);
+
+    return std::is_sorted(example.begin(), example.end(), compare);
 }
 
 static bool check_list()
