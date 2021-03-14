@@ -158,21 +158,33 @@ public:
     template<typename List>
     void produce_output_list(List& list) noexcept
     {
-        list.splice(list.begin(), produce_output_impl());
+        merge_lists();
+        list.splice(list.begin(), storage[0]);
     }
 
 protected:
-    auto produce_output_impl() noexcept
+    void merge_lists() noexcept
     {
-        std::list<T> result;
-        for (auto& deck : storage)
-            result.merge(deck, cmp);
+        if (storage.size() == 1)
+            return;
         
-        return result;
+        std::deque<std::list<T>> new_storage;
+        for (int i = storage.size() - 1; i > 0; i -= 2) {
+            std::list<T> new_list;
+            new_list.splice(new_list.begin(), storage[i]);
+            if (i != 0)
+                new_list.merge(storage[i - 1], cmp);
+
+            new_storage.emplace_back(std::move(new_list));
+        }
+
+        storage = std::move(new_storage);
+        merge_lists();
     }
 
-private:
     std::deque<std::list<T>> storage;
+
+private:
     Compare cmp;
 };
 
@@ -187,8 +199,8 @@ public:
 
     void produce_output() noexcept
     {
-        auto result = this->produce_output_impl();
-        std::move(result.begin(), result.end(), begin);
+        this->merge_lists();
+        std::move(this->storage[0].begin(), this->storage[0].end(), begin);
     }
 
 private:
