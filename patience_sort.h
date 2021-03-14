@@ -162,15 +162,20 @@ public:
 protected:
     void merge_decks() noexcept
     {
+        // Everything is merged
         if (storage.size() == 1)
             return;
 
-        std::deque<std::list<T>> new_storage;
+        decltype (storage) new_storage;
+        bool left_unmerged = true;
+
+        // Usually last decks are the smallest, so merge them first
         for (int i = storage.size() - 1; i > 0; i -= 2) {
             storage[i - 1].merge(storage[i], cmp);
             new_storage.emplace_front(std::move(storage[i - 1]));
+            left_unmerged = i != 1;
         }
-        if (storage.size() % 2 != 0)
+        if (left_unmerged)
             new_storage.emplace_front(std::move(storage[0]));
 
         storage = std::move(new_storage);
