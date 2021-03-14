@@ -69,24 +69,31 @@ private:
 
     Storage& storage;
     Compare cmp;
-};
+}; 
 
-template<typename Storage, typename Compare>
-auto create_installer(Storage& storage, Compare cmp)
+template<typename It, typename Compare>
+auto merge_range(std::pair<It, It> r1, std::pair<It, It> r2, Compare cmp)
 {
-    return Installer<Storage, Compare>(storage, cmp);
+    std::inplace_merge(r1.first, r1.second, r2.second, cmp);
+    return std::pair<It, It>{r1.first, r2.second};
 }
 
-template<typename T>
-class Merger
+template<typename T, typename Compare>
+auto merge_range(std::list<T> l1, std::list<T> l2, Compare cmp)
+{
+    l1.merge(std::move(l2), cmp);
+    return l1;
+}
+
+template<typename Compare, typename R>
+class Merge
 {
 public:
-    explicit Merger(T* deck) noexcept
-        : deck(deck)
+    Merge(Compare cmp, R&& ranges) noexcept
+        : cmp(cmp), ranges(ranges)
     { }
 
-    template<typename R>
-    auto merge(R&& ranges) noexcept
+    auto operator()() noexcept
     {
         // Everything is merged.
         if (ranges.size() == 1)
@@ -97,18 +104,20 @@ public:
 
         // Usually last decks are the smallest, so merge them first
         for (int i = ranges.size() - 1; i > 0; i -= 2) {
-            auto range = deck->merge_range(ranges[i - 1], ranges[i]);
+            auto range = merge_range(ranges[i - 1], ranges[i], cmp);
             new_ranges.emplace_front(std::move(range));
             left_unmerged = i != 1;
         }
         if (left_unmerged)
             new_ranges.emplace_front(std::move(ranges.front()));
 
-        return merge(std::move(new_ranges));      
+        ranges = std::move(new_ranges);
+        return (*this)();
     }
 
 private:
-    T* deck;
+    Compare cmp;
+    R ranges;
 };
 
 template<typename Compare, typename RandomIt>
@@ -119,23 +128,15 @@ public:
     using T = typename RandomIt::value_type;
 
     ContiniousDeck(Compare cmp, RandomIt begin)
-        : cmp(cmp), begin(begin) { }
+        : cmp(cmp), begin(begin), installer(storage, cmp)
+    { }
 
-    auto get_deck_pointer(const T& val)
-    {
-        return create_installer(storage, cmp).get_deck_pointer(val);
-    }
+    auto& get_installer() { return installer; }
 
     void produce_output() noexcept
     {
         install_back();
-        Merger(this).merge(std::move(points));
-    }
-
-    Range merge_range(Range r1, Range r2) noexcept
-    {
-        std::inplace_merge(r1.first, r1.second, r2.second, cmp);
-        return Range{r1.first, r2.second};
+        Merge(cmp, std::move(points))();
     }
 
 private:
@@ -158,6 +159,8 @@ private:
 
     Compare cmp;
     const RandomIt begin;
+
+    Installer<decltype(storage), Compare> installer;
 };
 
 template<typename T, typename Compare>
@@ -165,28 +168,22 @@ class SparceDeck
 {
     using Range = std::list<T>;
 public:
-    explicit SparceDeck(Compare cmp) : cmp(cmp) { }
+    explicit SparceDeck(Compare cmp)
+        : cmp(cmp), installer(storage, cmp)
+    { }
 
-    auto get_deck_pointer(const T& val)
-    {
-        return create_installer(storage, cmp).get_deck_pointer(val);
-    }
+    auto& get_installer() { return installer; }
 
     auto produce_output_list() noexcept
     {
-        return Merger(this).merge(std::move(storage));
-    }
-
-    auto merge_range(Range list1, Range list2) noexcept
-    {
-        list1.merge(std::move(list2), cmp);
-        return list1;
+        return Merge(cmp, std::move(storage))();
     }
 
 private:
     std::deque<std::list<T>> storage;
 
     Compare cmp;
+    Installer<decltype(storage), Compare> installer;
 };
 
 template<typename Compare, typename RandomIt>
@@ -212,8 +209,10 @@ template<typename RandomIt, template<typename, typename> class Deck, typename Co
 auto sort_generic(RandomIt begin, RandomIt end, Compare cmp)
 {
     Deck<Compare, RandomIt> deck(cmp, begin);
-    for (auto it = begin; it != end; ++it)
-        deck.get_deck_pointer(*it)->emplace_back(std::move(*it));
+    for (auto it = begin; it != end; ++it) {
+        auto target = deck.get_installer().get_deck_pointer(*it);
+        target->emplace_back(std::move(*it));
+    }
 
     deck.produce_output();
 }
@@ -252,7 +251,7 @@ auto patience_sort(List& list, Compare cmp)
     Patience::SparceDeck<typename List::value_type, Compare> deck(cmp);
     for (auto it = list.begin(); it != list.end();) {
         auto tmp = it++;
-        auto target = deck.get_deck_pointer(*tmp);
+        auto target = deck.get_installer().get_deck_pointer(*tmp);
         target->splice(target->end(), list, tmp);
     }
 
