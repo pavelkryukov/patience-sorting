@@ -100,38 +100,42 @@ public:
 private:
     void merge_decks() noexcept
     {
-        if (begins.size() == 1)
+        // Everything is merged.
+        if (points.size() == 2)
             return;
 
-        std::deque<RandomIt> new_begins;
-        auto ptr = end;
-        // Usually last decks are the smallest, so merge them first
-        for (int i = begins.size() - 1; i > 0; i -= 2) {
-            std::inplace_merge(begins[i - 1], begins[i], ptr, cmp);
-            new_begins.emplace_front(begins[i - 1]);
-            ptr = begins[i - 1];
-        }
-        if (begins.size() % 2 != 0)
-            new_begins.emplace_front(begins[0]);
+        decltype(points) new_points;
+        bool left_unmerged = true;
 
-        begins = std::move(new_begins);
+        // Usually last decks are the smallest, so merge them first
+        for (int mid = points.size() - 2; mid > 0; mid -= 2) {
+            std::inplace_merge(points[mid - 1], points[mid], points[mid + 1], cmp);
+            new_points.emplace_front(points[mid + 1]);
+            left_unmerged = mid != 1;
+        }
+        if (left_unmerged)
+            new_points.emplace_front(points[1]);
+
+        new_points.emplace_front(points[0]);
+
+        points = std::move(new_points);
         merge_decks();
     }
 
     auto move_back() noexcept
     {
-        end = begin;
+        auto end = begin;
         for (auto& deck : storage) {
-            begins.emplace_back(end);
+            points.emplace_back(end);
             end = std::move(deck.begin(), deck.end(), end);
         }
+        points.emplace_back(end);
     }
 
     std::deque<std::deque<T>> storage;
 
-    // Keeps unmerged ranges
-    std::deque<RandomIt> begins;
-    RandomIt end;
+    // Tracks ranges between sorted data
+    std::deque<RandomIt> points;
 
     Compare cmp;
     const RandomIt begin;
@@ -152,7 +156,7 @@ public:
     void produce_output_list(List& list) noexcept
     {
         merge_decks();
-        list.splice(list.begin(), storage[0]);
+        list = std::move(storage[0]);
     }
 
 protected:
