@@ -110,7 +110,7 @@ private:
         auto ptr = begin;
         size_t first = (1 + ends.size()) % 2;
         for (size_t i = first; i < ends.size(); i += 2) {
-            // Usually last decks are the smaller, so merge them first
+            // Usually last decks are the smallest, so merge them first
             // If # is odd, skip the first one
             if (i != 0)
                 result.emplace_front(ptr, ends[i - 1], ends[i]);
