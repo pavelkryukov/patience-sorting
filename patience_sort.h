@@ -77,9 +77,36 @@ auto create_installer(Storage& storage, Compare cmp)
     return Installer<Storage, Compare>(storage, cmp);
 }
 
+template<typename T>
+void merge_decks(T* deck)
+{
+    auto & ranges = deck->get_ranges();
+    using RangesStore = std::remove_reference_t<decltype(ranges)>;
+
+    // Everything is merged.
+    if (ranges.size() == 1)
+        return;
+
+    RangesStore new_ranges;
+    bool left_unmerged = true;
+
+    // Usually last decks are the smallest, so merge them first
+    for (int i = ranges.size() - 1; i > 0; i -= 2) {
+        auto range = deck->merge_range(ranges[i - 1], ranges[i]);
+        new_ranges.emplace_front(std::move(range));
+        left_unmerged = i != 1;
+    }
+    if (left_unmerged)
+        new_ranges.emplace_front(std::move(ranges.front()));
+
+    ranges = std::move(new_ranges);
+    merge_decks(deck);
+}
+
 template<typename Compare, typename RandomIt>
 class ContiniousDeck
 {
+    friend void merge_decks<ContiniousDeck>(ContiniousDeck*);
 public:
     using T = typename RandomIt::value_type;
 
@@ -94,31 +121,11 @@ public:
     void produce_output() noexcept
     {
         move_back();
-        merge_decks();
+        merge_decks(this);
     }
 
 private:
-    void merge_decks() noexcept
-    {
-        // Everything is merged.
-        if (points.size() == 1)
-            return;
-
-        decltype(points) new_points;
-        bool left_unmerged = true;
-
-        // Usually last decks are the smallest, so merge them first
-        for (int i = points.size() - 1; i > 0; i -= 2) {
-            merge_range(points[i - 1], points[i]);
-            new_points.emplace_front(points[i - 1].first, points[i].second);
-            left_unmerged = i != 1;
-        }
-        if (left_unmerged)
-            new_points.emplace_front(points[0]);
-
-        points = std::move(new_points);
-        merge_decks();
-    }
+    auto& get_ranges() { return points; }
 
     auto move_back() noexcept
     {
@@ -132,9 +139,10 @@ private:
 
     using Range = std::pair<RandomIt, RandomIt>;
 
-    void merge_range(const Range& r1, const Range& r2)
+    Range merge_range(const Range& r1, const Range& r2)
     {
         std::inplace_merge(r1.first, r1.second, r2.second, cmp);
+        return Range{r1.first, r2.second};
     }
 
     std::deque<std::deque<T>> storage;
@@ -149,6 +157,7 @@ private:
 template<typename T, typename Compare>
 class SparceDeck
 {
+    friend void merge_decks<SparceDeck>(SparceDeck*);
 public:
     explicit SparceDeck(Compare cmp) : cmp(cmp) { }
 
@@ -160,34 +169,19 @@ public:
     template<typename List>
     void produce_output_list(List& list) noexcept
     {
-        merge_decks();
+        merge_decks(this);
         list = std::move(storage[0]);
     }
 
 protected:
-    void merge_decks() noexcept
-    {
-        // Everything is merged
-        if (storage.size() == 1)
-            return;
-
-        decltype (storage) new_storage;
-        bool left_unmerged = true;
-
-        // Usually last decks are the smallest, so merge them first
-        for (int i = storage.size() - 1; i > 0; i -= 2) {
-            storage[i - 1].merge(storage[i], cmp);
-            new_storage.emplace_front(std::move(storage[i - 1]));
-            left_unmerged = i != 1;
-        }
-        if (left_unmerged)
-            new_storage.emplace_front(std::move(storage[0]));
-
-        storage = std::move(new_storage);
-        merge_decks();
-    }
-
     std::deque<std::list<T>> storage;
+    auto& get_ranges() { return storage; }
+
+    auto merge_range(std::list<T>& list1, std::list<T>& list2)
+    {
+        list1.merge(list2, cmp);
+        return list1;
+    }
 
 private:
     Compare cmp;
@@ -198,13 +192,14 @@ class SparseDeckRandomOut
     : public SparceDeck<typename RandomIt::value_type, Compare>
 {
     using Base = SparceDeck<typename RandomIt::value_type, Compare>;
+    friend void merge_decks<SparseDeckRandomOut>(SparseDeckRandomOut*);
 public:
     SparseDeckRandomOut(Compare cmp, RandomIt begin)
         : Base(cmp), begin(begin) { }
 
     void produce_output() noexcept
     {
-        this->merge_decks();
+        merge_decks(this);
         std::move(this->storage[0].begin(), this->storage[0].end(), begin);
     }
 
