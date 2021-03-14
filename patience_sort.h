@@ -93,54 +93,53 @@ public:
 
     void produce_output() noexcept
     {
-        auto ends = move_back();
-        for (auto& [b, m, e] : get_ranges(ends))
+        move_back();
+        extract_ranges();
+        for (auto& [b, m, e] : ranges)
             std::inplace_merge(b, m, e, cmp);
     }
 
 private:
-    // Returns sequence of merging instructions
-    auto get_ranges(const std::deque<RandomIt>& ends) noexcept
+    using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
+
+    void extract_ranges() noexcept
     {
-        using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
-        std::deque<Range> result;
         if (ends.size() == 1)
-            return result;
+            return;
 
         std::deque<RandomIt> new_ends;
+        const auto ranges_now = ranges.size();
         auto ptr = begin;
         size_t first = (1 + ends.size()) % 2;
         for (size_t i = first; i < ends.size(); i += 2) {
             // Usually last decks are the smallest, so merge them first
             // If # is odd, skip the first one
-            if (i != 0)
-                result.emplace_front(ptr, ends[i - 1], ends[i]);
+            if (i != 0) {
+                auto place = std::next(ranges.begin(), ranges_now);
+            //  auto place = ranges.end();
+                ranges.emplace(place, ptr, ends[i - 1], ends[i]);
+            }
             new_ends.emplace_back(ends[i]);
             ptr = ends[i];
         }
 
-        return concat(std::move(result), get_ranges(new_ends));
-    }
-
-    template<typename X>
-    auto concat(X&& first, X&& second) noexcept
-    {
-        first.insert(first.end(), second.begin(), second.end());
-        return first;
+        ends = std::move(new_ends);
+        extract_ranges();
     }
 
     auto move_back() noexcept
     {
-        std::deque<RandomIt> ends;
-        auto end = begin;
+        auto ptr = begin;
         for (auto& deck : storage) {
-            end = std::move(deck.begin(), deck.end(), end);
-            ends.emplace_back(end);
+            ptr = std::move(deck.begin(), deck.end(), ptr);
+            ends.emplace_back(ptr);
         }
-        return ends;
     }
 
     std::deque<std::deque<T>> storage;
+    std::deque<Range> ranges;  // Keeps sequence of merging commands
+    std::deque<RandomIt> ends; // Keeps ends of unmerged ranges
+
     Compare cmp;
     const RandomIt begin;
 };
