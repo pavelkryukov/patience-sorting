@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <deque>
 #include <list>
+#include <vector>
 
 namespace Patience {
 
@@ -91,18 +92,31 @@ public:
     template<typename RandomIt>
     void produce_output(RandomIt begin) noexcept
     {
-        auto mid = begin;
-        for (auto& deck : storage)
-            mid = merge(deck, begin, mid);
+        auto ends = move_back(begin);
+        merge(begin, ends);
     }
 
 private:
     template<typename RandomIt>
-    auto merge(std::deque<T>& deck, RandomIt begin, RandomIt mid) noexcept
+    void merge(RandomIt begin, const std::vector<RandomIt>& ends) noexcept
     {
-        auto new_mid = std::copy(deck.begin(), deck.end(), mid);
-        std::inplace_merge(begin, mid, new_mid, cmp);
-        return new_mid;
+        auto end = begin;
+        for (auto& e : ends) {
+            std::inplace_merge(begin, end, e, cmp);
+            end = e;
+        }
+    }
+
+    template<typename RandomIt>
+    auto move_back(RandomIt begin) noexcept
+    {
+        std::vector<RandomIt> ends;
+        auto end = begin;
+        for (auto& deck : storage) {
+            end = std::move(deck.begin(), deck.end(), end);
+            ends.emplace_back(end);
+        }
+        return ends;
     }
 
     std::deque<std::deque<T>> storage;
