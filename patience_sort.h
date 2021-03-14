@@ -94,51 +94,44 @@ public:
     void produce_output() noexcept
     {
         move_back();
-        extract_ranges();
-        for (auto& [b, m, e] : ranges)
-            std::inplace_merge(b, m, e, cmp);
+        merge_decks();
     }
 
 private:
-    using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
-
-    void extract_ranges() noexcept
+    void merge_decks() noexcept
     {
-        if (ends.size() == 1)
+        if (begins.size() == 1)
             return;
 
-        std::deque<RandomIt> new_ends;
-        const auto ranges_now = ranges.size();
-        auto ptr = begin;
-        size_t first = (1 + ends.size()) % 2;
-        for (size_t i = first; i < ends.size(); i += 2) {
-            // Usually last decks are the smallest, so merge them first
-            // If # is odd, skip the first one
-            if (i != 0) {
-                auto place = std::next(ranges.begin(), ranges_now);
-            //  auto place = ranges.end();
-                ranges.emplace(place, ptr, ends[i - 1], ends[i]);
-            }
-            new_ends.emplace_back(ends[i]);
-            ptr = ends[i];
+        std::deque<RandomIt> new_begins;
+        auto ptr = end;
+        // Usually last decks are the smallest, so merge them first
+        for (int i = begins.size() - 1; i > 0; i -= 2) {
+            std::inplace_merge(begins[i - 1], begins[i], ptr, cmp);
+            new_begins.emplace_front(begins[i - 1]);
+            ptr = begins[i - 1];
         }
+        if (begins.size() % 2 != 0)
+            new_begins.emplace_front(begins[0]);
 
-        ends = std::move(new_ends);
-        extract_ranges();
+        begins = std::move(new_begins);
+        merge_decks();
     }
 
     auto move_back() noexcept
     {
-        auto ptr = begin;
+        end = begin;
         for (auto& deck : storage) {
-            ptr = std::move(deck.begin(), deck.end(), ptr);
-            ends.emplace_back(ptr);
+            begins.emplace_back(end);
+            end = std::move(deck.begin(), deck.end(), end);
         }
     }
 
     std::deque<std::deque<T>> storage;
-    std::deque<Range> ranges;  // Keeps sequence of merging commands
-    std::deque<RandomIt> ends; // Keeps ends of unmerged ranges
+
+    // Keeps unmerged ranges
+    std::deque<RandomIt> begins;
+    RandomIt end;
 
     Compare cmp;
     const RandomIt begin;
