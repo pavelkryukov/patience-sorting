@@ -50,6 +50,18 @@ static auto shuffle(Container* c, int seed)
     std::shuffle(c->begin(), c->end(), gen);
 }
 
+class Pause
+{
+public:
+    explicit Pause(benchmark::State& state)
+        : state(state) { state.PauseTiming(); }
+
+    ~Pause() { state.ResumeTiming(); }
+
+private:
+    benchmark::State& state;
+};
+
 template<template<typename> typename Container, SortingFunction<typename Container<int>::iterator> func>
 static void sorting(benchmark::State& state)
 {
@@ -58,9 +70,7 @@ static void sorting(benchmark::State& state)
     int seed = 0;
 
     for (auto _ : state) {
-        state.PauseTiming();
-        shuffle(&data, seed++);
-        state.ResumeTiming();
+        { Pause p(state); shuffle(&data, seed++); }
         func(data.begin(), data.end());
     }
 
@@ -75,11 +85,18 @@ static void list_sorting(benchmark::State& state)
     int seed = 0;
 
     for (auto _ : state) {
-        state.PauseTiming();
-        shuffle(&data, seed++);
-        std::list<int> list(data.begin(), data.end());
-        state.ResumeTiming();
+        std::list<int> list;
+        {
+            Pause p(state);
+            shuffle(&data, seed++);
+            list = std::list<int>(data.begin(), data.end());
+        }
         func(list);
+        {
+            Pause p(state);
+            if (!std::is_sorted(list.begin(), list.end()))
+                throw std::runtime_error("Bug!");
+        }
     }
 
     state.SetComplexityN(state.range(0));
