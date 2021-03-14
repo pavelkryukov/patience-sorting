@@ -77,29 +77,30 @@ auto create_installer(Storage& storage, Compare cmp)
     return Installer<Storage, Compare>(storage, cmp);
 }
 
-template<typename T, typename Compare>
+template<typename Compare, typename RandomIt>
 class ContiniousDeck
 {
 public:
-    explicit ContiniousDeck(Compare cmp) : cmp(cmp) { }
+    using T = typename RandomIt::value_type;
+
+    ContiniousDeck(Compare cmp, RandomIt begin)
+        : cmp(cmp), begin(begin) { }
 
     auto get_deck_pointer(const T& val)
     {
         return create_installer(storage, cmp).get_deck_pointer(val);
     }
 
-    template<typename RandomIt>
-    void produce_output(RandomIt begin) noexcept
+    void produce_output() noexcept
     {
-        auto ends = move_back(begin);
-        for (auto& [b, m, e] : get_ranges(begin, ends))
+        auto ends = move_back();
+        for (auto& [b, m, e] : get_ranges(ends))
             std::inplace_merge(b, m, e, cmp);
     }
 
 private:
     // Returns sequence of merging instructions
-    template<typename RandomIt>
-    auto get_ranges(RandomIt begin, const std::deque<RandomIt>& ends) noexcept
+    auto get_ranges(const std::deque<RandomIt>& ends) noexcept
     {
         using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
         std::deque<Range> result;
@@ -118,7 +119,7 @@ private:
             ptr = ends[i];
         }
 
-        return concat(std::move(result), get_ranges(begin, new_ends));
+        return concat(std::move(result), get_ranges(new_ends));
     }
 
     template<typename X>
@@ -128,8 +129,7 @@ private:
         return first;
     }
 
-    template<typename RandomIt>
-    auto move_back(RandomIt begin) noexcept
+    auto move_back() noexcept
     {
         std::deque<RandomIt> ends;
         auto end = begin;
@@ -142,6 +142,7 @@ private:
 
     std::deque<std::deque<T>> storage;
     Compare cmp;
+    const RandomIt begin;
 };
 
 template<typename T, typename Compare>
@@ -155,21 +156,14 @@ public:
         return create_installer(storage, cmp).get_deck_pointer(val);
     }
 
-    template<typename RandomIt>
-    void produce_output(RandomIt begin) noexcept
-    {
-        auto result = produce_output();
-        std::move(result.begin(), result.end(), begin);
-    }
-
     template<typename List>
     void produce_output_list(List& list) noexcept
     {
-        list.splice(list.begin(), produce_output());
+        list.splice(list.begin(), produce_output_impl());
     }
 
-private:
-    auto produce_output() noexcept
+protected:
+    auto produce_output_impl() noexcept
     {
         std::list<T> result;
         for (auto& deck : storage)
@@ -178,19 +172,38 @@ private:
         return result;
     }
 
+private:
     std::deque<std::list<T>> storage;
     Compare cmp;
+};
+
+template<typename Compare, typename RandomIt>
+class SparseDeckRandomOut
+    : public SparceDeck<typename RandomIt::value_type, Compare>
+{
+    using Base = SparceDeck<typename RandomIt::value_type, Compare>;
+public:
+    SparseDeckRandomOut(Compare cmp, RandomIt begin)
+        : Base(cmp), begin(begin) { }
+
+    void produce_output() noexcept
+    {
+        auto result = this->produce_output_impl();
+        std::move(result.begin(), result.end(), begin);
+    }
+
+private:
+    const RandomIt begin;
 };
 
 template<typename RandomIt, template<typename, typename> class Deck, typename Compare>
 auto sort_generic(RandomIt begin, RandomIt end, Compare cmp)
 {
-    using T = typename RandomIt::value_type;
-    Deck<T, Compare> deck(cmp);
+    Deck<Compare, RandomIt> deck(cmp, begin);
     for (auto it = begin; it != end; ++it)
         deck.get_deck_pointer(*it)->emplace_back(std::move(*it));
 
-    deck.produce_output(begin);
+    deck.produce_output();
 }
 
 } // namespace Patience
@@ -212,13 +225,13 @@ template<typename RandomIt>
 auto patience_sort_list(RandomIt begin, RandomIt end)
 {
     using T = typename RandomIt::value_type;
-    Patience::sort_generic<RandomIt, Patience::SparceDeck>(begin, end, Patience::default_compare<T>);
+    Patience::sort_generic<RandomIt, Patience::SparseDeckRandomOut>(begin, end, Patience::default_compare<T>);
 }
 
 template<typename RandomIt, typename Compare>
 auto patience_sort_list(RandomIt begin, RandomIt end, Compare cmp)
 {
-    Patience::sort_generic<RandomIt, Patience::SparceDeck>(begin, end, cmp);
+    Patience::sort_generic<RandomIt, Patience::SparseDeckRandomOut>(begin, end, cmp);
 }
 
 template<typename List, typename Compare>
