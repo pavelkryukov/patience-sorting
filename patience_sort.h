@@ -118,9 +118,14 @@ private:
             ptr = ends[i];
         }
 
-        auto more_results = get_ranges(begin, new_ends);
-        result.insert(result.end(), more_results.begin(), more_results.end());
-        return result;
+        return concat(std::move(result), get_ranges(begin, new_ends));
+    }
+
+    template<typename X>
+    auto concat(X&& first, X&& second) noexcept
+    {
+        first.insert(first.end(), second.begin(), second.end());
+        return first;
     }
 
     template<typename RandomIt>
