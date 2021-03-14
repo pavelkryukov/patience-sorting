@@ -56,9 +56,9 @@ static bool check_list()
 static bool check_list_inplace()
 {
     std::list<int> example{1, 5, 1, 5, 12, 4, 104, 15, 2, 8};
-    patience_sort(example);
+    patience_sort(example, compare);
 
-    return std::is_sorted(example.begin(), example.end());
+    return std::is_sorted(example.begin(), example.end(), compare);
 }
 
 int main()
