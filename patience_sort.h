@@ -101,22 +101,20 @@ private:
     void merge_decks() noexcept
     {
         // Everything is merged.
-        if (points.size() == 2)
+        if (points.size() == 1)
             return;
 
         decltype(points) new_points;
         bool left_unmerged = true;
 
         // Usually last decks are the smallest, so merge them first
-        for (int mid = points.size() - 2; mid > 0; mid -= 2) {
-            std::inplace_merge(points[mid - 1], points[mid], points[mid + 1], cmp);
-            new_points.emplace_front(points[mid + 1]);
-            left_unmerged = mid != 1;
+        for (int i = points.size() - 1; i > 0; i -= 2) {
+            merge_range(points[i - 1], points[i]);
+            new_points.emplace_front(points[i - 1].first, points[i].second);
+            left_unmerged = i != 1;
         }
         if (left_unmerged)
-            new_points.emplace_front(points[1]);
-
-        new_points.emplace_front(points[0]);
+            new_points.emplace_front(points[0]);
 
         points = std::move(new_points);
         merge_decks();
@@ -126,16 +124,23 @@ private:
     {
         auto end = begin;
         for (auto& deck : storage) {
-            points.emplace_back(end);
-            end = std::move(deck.begin(), deck.end(), end);
+            auto range_begin = end;
+            end = std::move(deck.begin(), deck.end(), range_begin);
+            points.emplace_back(range_begin, end);
         }
-        points.emplace_back(end);
+    }
+
+    using Range = std::pair<RandomIt, RandomIt>;
+
+    void merge_range(const Range& r1, const Range& r2)
+    {
+        std::inplace_merge(r1.first, r1.second, r2.second, cmp);
     }
 
     std::deque<std::deque<T>> storage;
 
     // Tracks ranges between sorted data
-    std::deque<RandomIt> points;
+    std::deque<std::pair<RandomIt, RandomIt>> points;
 
     Compare cmp;
     const RandomIt begin;
