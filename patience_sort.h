@@ -128,18 +128,20 @@ public:
 
     void produce_output() noexcept
     {
-        move_back();
+        install_back();
         Merger(this).merge(std::move(points));
     }
 
-    Range merge_range(const Range& r1, const Range& r2) noexcept
+    Range merge_range(Range r1, Range r2) noexcept
     {
         std::inplace_merge(r1.first, r1.second, r2.second, cmp);
         return Range{r1.first, r2.second};
     }
 
 private:
-    auto move_back() noexcept
+    // Puts partially sorted data back to input
+    // Generates ranges of sorted data
+    auto install_back() noexcept
     {
         auto end = begin;
         for (auto& deck : storage) {
@@ -161,6 +163,7 @@ private:
 template<typename T, typename Compare>
 class SparceDeck
 {
+    using Range = std::list<T>;
 public:
     explicit SparceDeck(Compare cmp) : cmp(cmp) { }
 
@@ -169,22 +172,15 @@ public:
         return create_installer(storage, cmp).get_deck_pointer(val);
     }
 
-    template<typename List>
-    void produce_output_list(List& list) noexcept
-    {
-        list = produce_output_impl();
-    }
-
-    auto merge_range(std::list<T>& list1, std::list<T>& list2) noexcept
-    {
-        list1.merge(list2, cmp);
-        return list1;
-    }
-
-protected:
-    auto produce_output_impl() noexcept
+    auto produce_output_list() noexcept
     {
         return Merger(this).merge(std::move(storage));
+    }
+
+    auto merge_range(Range list1, Range list2) noexcept
+    {
+        list1.merge(std::move(list2), cmp);
+        return list1;
     }
 
 private:
@@ -204,7 +200,7 @@ public:
 
     void produce_output() noexcept
     {
-        auto result = this->produce_output_impl();
+        auto result = this->produce_output_list();
         std::move(result.begin(), result.end(), begin);
     }
 
@@ -260,7 +256,7 @@ auto patience_sort(List& list, Compare cmp)
         target->splice(target->end(), list, tmp);
     }
 
-    deck.produce_output_list(list);
+    list = deck.produce_output_list();
 }
 
 template<typename List>
