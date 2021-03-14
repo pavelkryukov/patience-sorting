@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <deque>
 #include <list>
-#include <vector>
 
 namespace Patience {
 
@@ -98,26 +97,23 @@ public:
     }
 
 private:
+    // Returns sequence of merging instructions
     template<typename RandomIt>
-    auto get_ranges(RandomIt begin, const std::vector<RandomIt>& ends) noexcept
+    auto get_ranges(RandomIt begin, const std::deque<RandomIt>& ends) noexcept
     {
         using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
         std::deque<Range> result;
         if (ends.size() == 1)
             return result;
 
-        std::vector<RandomIt> new_ends;
+        std::deque<RandomIt> new_ends;
         auto ptr = begin;
-        size_t first_end = 1;
-        // If there is # number of decks, do not merge the first one
-        if (ends.size() % 2 != 0) {
-            new_ends.emplace_back(ends[0]);
-            ptr = ends[0];
-            first_end = 2;
-        }
-        for (size_t i = first_end; i < ends.size(); i += 2) {
+        size_t first = (1 + ends.size()) % 2;
+        for (size_t i = first; i < ends.size(); i += 2) {
             // Usually last decks are the smaller, so merge them first
-            result.emplace_front(ptr, ends[i - 1], ends[i]);
+            // If # is odd, skip the first one
+            if (i != 0)
+                result.emplace_front(ptr, ends[i - 1], ends[i]);
             new_ends.emplace_back(ends[i]);
             ptr = ends[i];
         }
@@ -130,7 +126,7 @@ private:
     template<typename RandomIt>
     auto move_back(RandomIt begin) noexcept
     {
-        std::vector<RandomIt> ends;
+        std::deque<RandomIt> ends;
         auto end = begin;
         for (auto& deck : storage) {
             end = std::move(deck.begin(), deck.end(), end);
