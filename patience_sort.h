@@ -93,18 +93,38 @@ public:
     void produce_output(RandomIt begin) noexcept
     {
         auto ends = move_back(begin);
-        merge(begin, ends);
+        for (auto& [b, m, e] : get_ranges(begin, ends))
+            std::inplace_merge(b, m, e, cmp);
     }
 
 private:
     template<typename RandomIt>
-    void merge(RandomIt begin, const std::vector<RandomIt>& ends) noexcept
+    auto get_ranges(RandomIt begin, const std::vector<RandomIt>& ends) noexcept
     {
-        auto end = begin;
-        for (auto& e : ends) {
-            std::inplace_merge(begin, end, e, cmp);
-            end = e;
+        using Range = std::tuple<RandomIt, RandomIt, RandomIt>;
+        std::deque<Range> result;
+        if (ends.size() == 1)
+            return result;
+
+        std::vector<RandomIt> new_ends;
+        auto ptr = begin;
+        size_t first_end = 1;
+        // If there is # number of decks, do not merge the first one
+        if (ends.size() % 2 != 0) {
+            new_ends.emplace_back(ends[0]);
+            ptr = ends[0];
+            first_end = 2;
         }
+        for (size_t i = first_end; i < ends.size(); i += 2) {
+            // Usually last decks are the smaller, so merge them first
+            result.emplace_front(ptr, ends[i - 1], ends[i]);
+            new_ends.emplace_back(ends[i]);
+            ptr = ends[i];
+        }
+
+        auto more_results = get_ranges(begin, new_ends);
+        result.insert(result.end(), more_results.begin(), more_results.end());
+        return result;
     }
 
     template<typename RandomIt>
