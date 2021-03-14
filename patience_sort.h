@@ -66,7 +66,7 @@ private:
         auto mid = std::next(begin, std::distance(begin, end) / 2);
         return cmp(mid->back(), val) ? find_deck(val, begin, mid) : find_deck(val, mid, end);
     }
-    
+
     Storage& storage;
     Compare cmp;
 };
