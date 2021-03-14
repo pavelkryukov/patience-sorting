@@ -93,12 +93,12 @@ static void list_qsort(std::list<int>& list)
 // Workaround Clang type deduction issues
 template<typename T> using Vector = std::vector<T>;
 
+BENCHMARK_TEMPLATE(sorting, Vector, patience_sort_cont)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(sorting, Vector, patience_sort_list)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 BENCHMARK_TEMPLATE(sorting, Vector, std::sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 BENCHMARK_TEMPLATE(sorting, Vector, merge_sort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
-BENCHMARK_TEMPLATE(sorting, Vector, patience_sort_cont)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
-BENCHMARK_TEMPLATE(sorting, Vector  , patience_sort_list)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 
-BENCHMARK_TEMPLATE(list_sorting, list_qsort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 BENCHMARK_TEMPLATE(list_sorting, patience_sort<std::list<int>>)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
+BENCHMARK_TEMPLATE(list_sorting, list_qsort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 
 BENCHMARK_MAIN();
