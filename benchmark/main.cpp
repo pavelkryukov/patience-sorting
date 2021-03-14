@@ -50,10 +50,10 @@ static auto shuffle(Container* c, int seed)
     std::shuffle(c->begin(), c->end(), gen);
 }
 
-template<template<typename> typename Сontainer, SortingFunction<typename Сontainer<int>::iterator> func>
+template<template<typename> typename Container, SortingFunction<typename Container<int>::iterator> func>
 static void sorting(benchmark::State& state)
 {
-    Сontainer<int> data(state.range(0));
+    Container<int> data(state.range(0));
     std::iota(data.begin(), data.end(), 0);
     int seed = 0;
 
@@ -101,4 +101,4 @@ BENCHMARK_TEMPLATE(sorting, Vector  , patience_sort_list)->RangeMultiplier(2)->R
 BENCHMARK_TEMPLATE(list_sorting, list_qsort)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 BENCHMARK_TEMPLATE(list_sorting, patience_sort<std::list<int>>)->RangeMultiplier(2)->Range(1, 1 << 18)->Complexity(benchmark::oNLogN);
 
-BENCHMARK_MAIN()
+BENCHMARK_MAIN();
