@@ -78,35 +78,43 @@ auto create_installer(Storage& storage, Compare cmp)
 }
 
 template<typename T>
-void merge_decks(T* deck)
+class Merger
 {
-    auto & ranges = deck->get_ranges();
-    using RangesStore = std::remove_reference_t<decltype(ranges)>;
+public:
+    explicit Merger(T* deck) noexcept
+        : deck(deck)
+    { }
 
-    // Everything is merged.
-    if (ranges.size() == 1)
-        return;
+    template<typename R>
+    auto merge(R&& ranges) noexcept
+    {
+        // Everything is merged.
+        if (ranges.size() == 1)
+            return ranges.front();
 
-    RangesStore new_ranges;
-    bool left_unmerged = true;
+        R new_ranges;
+        bool left_unmerged = true;
 
-    // Usually last decks are the smallest, so merge them first
-    for (int i = ranges.size() - 1; i > 0; i -= 2) {
-        auto range = deck->merge_range(ranges[i - 1], ranges[i]);
-        new_ranges.emplace_front(std::move(range));
-        left_unmerged = i != 1;
+        // Usually last decks are the smallest, so merge them first
+        for (int i = ranges.size() - 1; i > 0; i -= 2) {
+            auto range = deck->merge_range(ranges[i - 1], ranges[i]);
+            new_ranges.emplace_front(std::move(range));
+            left_unmerged = i != 1;
+        }
+        if (left_unmerged)
+            new_ranges.emplace_front(std::move(ranges.front()));
+
+        return merge(std::move(new_ranges));      
     }
-    if (left_unmerged)
-        new_ranges.emplace_front(std::move(ranges.front()));
 
-    ranges = std::move(new_ranges);
-    merge_decks(deck);
-}
+private:
+    T* deck;
+};
 
 template<typename Compare, typename RandomIt>
 class ContiniousDeck
 {
-    friend void merge_decks<ContiniousDeck>(ContiniousDeck*);
+    using Range = std::pair<RandomIt, RandomIt>;
 public:
     using T = typename RandomIt::value_type;
 
@@ -121,12 +129,16 @@ public:
     void produce_output() noexcept
     {
         move_back();
-        merge_decks(this);
+        Merger(this).merge(std::move(points));
+    }
+
+    Range merge_range(const Range& r1, const Range& r2) noexcept
+    {
+        std::inplace_merge(r1.first, r1.second, r2.second, cmp);
+        return Range{r1.first, r2.second};
     }
 
 private:
-    auto& get_ranges() { return points; }
-
     auto move_back() noexcept
     {
         auto end = begin;
@@ -135,14 +147,6 @@ private:
             end = std::move(deck.begin(), deck.end(), range_begin);
             points.emplace_back(range_begin, end);
         }
-    }
-
-    using Range = std::pair<RandomIt, RandomIt>;
-
-    Range merge_range(const Range& r1, const Range& r2)
-    {
-        std::inplace_merge(r1.first, r1.second, r2.second, cmp);
-        return Range{r1.first, r2.second};
     }
 
     std::deque<std::deque<T>> storage;
@@ -157,7 +161,6 @@ private:
 template<typename T, typename Compare>
 class SparceDeck
 {
-    friend void merge_decks<SparceDeck>(SparceDeck*);
 public:
     explicit SparceDeck(Compare cmp) : cmp(cmp) { }
 
@@ -169,21 +172,24 @@ public:
     template<typename List>
     void produce_output_list(List& list) noexcept
     {
-        merge_decks(this);
-        list = std::move(storage[0]);
+        list = produce_output_impl();
     }
 
-protected:
-    std::deque<std::list<T>> storage;
-    auto& get_ranges() { return storage; }
-
-    auto merge_range(std::list<T>& list1, std::list<T>& list2)
+    auto merge_range(std::list<T>& list1, std::list<T>& list2) noexcept
     {
         list1.merge(list2, cmp);
         return list1;
     }
 
+protected:
+    auto produce_output_impl() noexcept
+    {
+        return Merger(this).merge(std::move(storage));
+    }
+
 private:
+    std::deque<std::list<T>> storage;
+
     Compare cmp;
 };
 
@@ -192,15 +198,14 @@ class SparseDeckRandomOut
     : public SparceDeck<typename RandomIt::value_type, Compare>
 {
     using Base = SparceDeck<typename RandomIt::value_type, Compare>;
-    friend void merge_decks<SparseDeckRandomOut>(SparseDeckRandomOut*);
 public:
     SparseDeckRandomOut(Compare cmp, RandomIt begin)
         : Base(cmp), begin(begin) { }
 
     void produce_output() noexcept
     {
-        merge_decks(this);
-        std::move(this->storage[0].begin(), this->storage[0].end(), begin);
+        auto result = this->produce_output_impl();
+        std::move(result.begin(), result.end(), begin);
     }
 
 private:
