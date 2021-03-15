@@ -116,27 +116,33 @@ private:
     Compare cmp;
 };
 
-template<typename Deck, typename Compare>
-auto create_installer(Compare cmp)
+template<typename Deck, typename It, typename Compare>
+auto install(It begin, It end, Compare cmp) noexcept
 {
-    return Installer<Deck, Compare>(cmp);
+    return Installer<Deck, Compare>(cmp).install(begin, end);
+}
+
+template<typename Deck, typename List, typename Compare>
+auto install(List& list, Compare cmp) noexcept
+{
+    return Installer<Deck, Compare>(cmp).install(list);
 }
 
 template<typename It, typename Compare>
-void merge_range(std::pair<It, It>& r1, std::pair<It, It>& r2, Compare cmp)
+void merge_range(std::pair<It, It>& r1, std::pair<It, It>& r2, Compare cmp) noexcept
 {
     std::inplace_merge(r1.first, r1.second, r2.second, cmp);
     r1.second = r2.second;
 }
 
 template<typename T, typename Compare>
-void merge_range(std::list<T>& l1, std::list<T>& l2, Compare cmp)
+void merge_range(std::list<T>& l1, std::list<T>& l2, Compare cmp) noexcept
 {
     l1.merge(std::move(l2), cmp);
 }
 
 template<typename Compare, typename R>
-auto merge_ranges(Compare cmp, R&& ranges) noexcept
+auto merge(Compare cmp, R&& ranges) noexcept
 {
     // Everything is merged.
     if (ranges.size() == 1)
@@ -154,14 +160,14 @@ auto merge_ranges(Compare cmp, R&& ranges) noexcept
     if (left_unmerged)
         new_ranges.emplace_front(std::move(ranges.front()));
 
-    return merge_ranges(cmp, std::move(new_ranges));
+    return merge(cmp, std::move(new_ranges));
 }
 
 template<typename Deck, typename It, typename Compare>
 void sort(It begin, It end, Compare cmp)
 {
-    auto ranges = create_installer<Deck>(cmp).install(begin, end);
-    auto range = merge_ranges(cmp, std::move(ranges));
+    auto ranges = install<Deck>(begin, end, cmp);
+    auto range = merge(cmp, std::move(ranges));
     if constexpr (std::is_same_v<decltype(range), Deck>)
         std::move(range.begin(), range.end(), begin);
 }
@@ -169,8 +175,8 @@ void sort(It begin, It end, Compare cmp)
 template<typename T, typename Compare>
 void sort(std::list<T>& list, Compare cmp)
 {
-    auto ranges = create_installer<std::list<T>>(cmp).install(list);
-    list = merge_ranges(cmp, std::move(ranges));
+    auto ranges = install<std::list<T>>(list, cmp);
+    list = merge(cmp, std::move(ranges));
 }
 
 } // namespace Patience
