@@ -34,49 +34,50 @@ bool default_compare(const T& lhs, const T& rhs) noexcept
     return lhs < rhs;
 }
 
-template<typename Storage, typename Compare>
+template<typename Deck, typename Compare>
 class Installer
 {
-    using T = typename Storage::value_type;
+    using T = typename Deck::value_type;
 public:
     static constexpr const bool is_list =
-		std::is_same_v<Storage, std::list<T>>;
+        std::is_same_v<Deck, std::list<T>>;
 
     explicit Installer(Compare cmp) noexcept
-		: cmp(cmp)
-	{ }
+        : cmp(cmp)
+    { }
 
-	template<typename It>
-	auto install(It begin, It end)
-	{
-		for (auto it = begin; it != end; ++it)
-			get_deck_pointer(*it)->emplace_back(std::move(*it));
+    template<typename It>
+    auto install(It begin, It end)
+    {
+        for (auto it = begin; it != end; ++it)
+            get_deck_pointer(*it)->emplace_back(std::move(*it));
 
-		if constexpr (is_list)
-			return std::move(storage);
-		else
-			return install_back(begin);
-	}
+        if constexpr (is_list)
+            return std::move(decks);
+        else
+            return install_back(begin);
+    }
 
-	auto install(std::list<T>& list)
-	{
-		for (auto it = list.begin(); it != list.end();) {
-			auto tmp = it++;
-			auto target = get_deck_pointer(*tmp);
-			target->splice(target->end(), list, tmp);
-		}
-		return storage;
-	}
+    auto install(std::list<T>& list)
+    {
+        static_assert(is_list);
+        for (auto it = list.begin(); it != list.end();) {
+            auto tmp = it++;
+            auto target = get_deck_pointer(*tmp);
+            target->splice(target->end(), list, tmp);
+        }
+        return decks;
+    }
 
 private:
     // Puts partially sorted data back to input
     // Generates ranges of sorted data
-	template<typename It>
+    template<typename It>
     auto install_back(It begin) noexcept
     {
         std::deque<std::pair<It, It>> points;
         auto end = begin;
-        for (auto& deck : storage) {
+        for (auto& deck : decks) {
             auto range_begin = end;
             end = std::move(deck.begin(), deck.end(), range_begin);
             points.emplace_back(range_begin, end);
@@ -86,14 +87,14 @@ private:
 
     auto get_deck_pointer(const T& val)
     {
-        auto res = find_deck(val, storage.begin(), storage.end());
-        return res != storage.end() ? res : allocate_new_deck();
+        auto res = find_deck(val, decks.begin(), decks.end());
+        return res != decks.end() ? res : allocate_new_deck();
     }
 
     auto allocate_new_deck()
     {
-        storage.resize(storage.size() + 1);
-        return storage.end() - 1;
+        decks.resize(decks.size() + 1);
+        return decks.end() - 1;
     }
 
     template<typename DeckIt>
@@ -107,18 +108,18 @@ private:
 
         auto mid = std::next(begin, std::distance(begin, end) / 2);
         return cmp(mid->back(), val)
-			? find_deck(val, begin, mid)
-			: find_deck(val, mid, end);
+            ? find_deck(val, begin, mid)
+            : find_deck(val, mid, end);
     }
 
-    std::deque<Storage> storage;
+    std::deque<Deck> decks;
     Compare cmp;
 };
 
-template<typename Storage, typename Compare>
+template<typename Deck, typename Compare>
 auto create_installer(Compare cmp)
 {
-	return Installer<Storage, Compare>(cmp);
+    return Installer<Deck, Compare>(cmp);
 }
 
 template<typename It, typename Compare>
@@ -154,7 +155,7 @@ public:
 
         // Usually last decks are the smallest, so merge them first
         for (int i = ranges.size() - 1; i > 0; i -= 2) {
-            auto range = merge_range(ranges[i - 1], ranges[i], cmp);
+            auto range = merge_range(std::move(ranges[i - 1]), std::move(ranges[i]), cmp);
             new_ranges.emplace_front(std::move(range));
             left_unmerged = i != 1;
         }
@@ -170,13 +171,13 @@ private:
     R ranges;
 };
 
-template<typename Storage, typename It, typename Compare>
+template<typename Deck, typename It, typename Compare>
 void sort(It begin, It end, Compare cmp)
 {
-    auto ranges = create_installer<Storage>(cmp).install(begin, end);
+    auto ranges = create_installer<Deck>(cmp).install(begin, end);
     auto range = Merge(cmp, std::move(ranges))();
-    if constexpr (std::is_same_v<decltype(range), Storage>)
-		std::move(range.begin(), range.end(), begin);
+    if constexpr (std::is_same_v<decltype(range), Deck>)
+        std::move(range.begin(), range.end(), begin);
 }
 
 template<typename T, typename Compare>
@@ -198,7 +199,7 @@ auto patience_sort_cont(It begin, It end)
 template<typename It, typename Compare>
 auto patience_sort_cont(It begin, It end, Compare cmp)
 {
-	using T = typename It::value_type;
+    using T = typename It::value_type;
     Patience::sort<std::deque<T>>(begin, end, cmp);
 }
 
@@ -212,7 +213,7 @@ auto patience_sort_list(It begin, It end)
 template<typename It, typename Compare>
 auto patience_sort_list(It begin, It end, Compare cmp)
 {
-	using T = typename It::value_type;
+    using T = typename It::value_type;
     Patience::sort<std::list<T>>(begin, end, cmp);
 }
 
@@ -225,6 +226,6 @@ auto patience_sort(List& list, Compare cmp)
 template<typename List>
 auto patience_sort(List& list)
 {
-	using T = typename List::value_type;
+    using T = typename List::value_type;
     Patience::sort(list, Patience::default_compare<T>);
 }
