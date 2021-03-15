@@ -123,17 +123,16 @@ auto create_installer(Compare cmp)
 }
 
 template<typename It, typename Compare>
-auto merge_range(std::pair<It, It> r1, std::pair<It, It> r2, Compare cmp)
+void merge_range(std::pair<It, It>& r1, std::pair<It, It>& r2, Compare cmp)
 {
     std::inplace_merge(r1.first, r1.second, r2.second, cmp);
-    return std::pair<It, It>{r1.first, r2.second};
+    r1.second = r2.second;
 }
 
 template<typename T, typename Compare>
-auto merge_range(std::list<T> l1, std::list<T> l2, Compare cmp)
+void merge_range(std::list<T>& l1, std::list<T>& l2, Compare cmp)
 {
     l1.merge(std::move(l2), cmp);
-    return l1;
 }
 
 template<typename Compare, typename R>
@@ -148,8 +147,8 @@ auto merge_ranges(Compare cmp, R&& ranges) noexcept
 
     // Usually last decks are the smallest, so merge them first
     for (int i = ranges.size() - 1; i > 0; i -= 2) {
-        auto range = merge_range(std::move(ranges[i - 1]), std::move(ranges[i]), cmp);
-        new_ranges.emplace_front(std::move(range));
+        merge_range(ranges[i - 1], ranges[i], cmp);
+        new_ranges.emplace_front(std::move(ranges[i - 1]));
         left_unmerged = i != 1;
     }
     if (left_unmerged)
