@@ -66,7 +66,7 @@ public:
             auto target = get_deck_pointer(*tmp);
             target->splice(target->end(), list, tmp);
         }
-        return decks;
+        return std::move(decks);
     }
 
 private:
