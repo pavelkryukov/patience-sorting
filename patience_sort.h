@@ -135,7 +135,7 @@ public:
 
     void produce_output() noexcept
     {
-        install_back();
+        auto points = install_back();
         Merge(cmp, std::move(points))();
     }
 
@@ -144,18 +144,17 @@ private:
     // Generates ranges of sorted data
     auto install_back() noexcept
     {
+        std::deque<std::pair<RandomIt, RandomIt>> points;
         auto end = begin;
         for (auto& deck : storage) {
             auto range_begin = end;
             end = std::move(deck.begin(), deck.end(), range_begin);
             points.emplace_back(range_begin, end);
         }
+        return points;
     }
 
     std::deque<std::deque<T>> storage;
-
-    // Tracks ranges between sorted data
-    std::deque<std::pair<RandomIt, RandomIt>> points;
 
     Compare cmp;
     const RandomIt begin;
