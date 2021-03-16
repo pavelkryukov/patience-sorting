@@ -35,7 +35,7 @@ bool default_compare(const T& lhs, const T& rhs) noexcept
 }
     
 template<typename T>
-static constexpr const bool is_list = std::is_same_v<T, std::list<T::value_type>>;
+static constexpr const bool is_list = std::is_same_v<T, std::list<typename T::value_type>>;
 
 template<typename Deck, typename Compare>
 class Installer
