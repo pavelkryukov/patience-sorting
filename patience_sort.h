@@ -33,15 +33,15 @@ bool default_compare(const T& lhs, const T& rhs) noexcept
 {
     return lhs < rhs;
 }
+    
+template<typename T>
+static constexpr const bool is_list = std::is_same_v<T, std::list<T::value_type>>;
 
 template<typename Deck, typename Compare>
 class Installer
 {
     using T = typename Deck::value_type;
 public:
-    static constexpr const bool is_list =
-        std::is_same_v<Deck, std::list<T>>;
-
     explicit Installer(Compare cmp) noexcept
         : cmp(cmp)
     { }
@@ -52,7 +52,7 @@ public:
         for (auto it = begin; it != end; ++it)
             get_deck_pointer(*it)->emplace_back(std::move(*it));
 
-        if constexpr (is_list)
+        if constexpr (is_list<Deck>)
             return std::move(decks);
         else
             return install_back(begin);
@@ -60,7 +60,7 @@ public:
 
     auto install(std::list<T>& list)
     {
-        static_assert(is_list);
+        static_assert(is_list<Deck>);
         for (auto it = list.begin(); it != list.end();) {
             auto tmp = it++;
             auto target = get_deck_pointer(*tmp);
@@ -166,7 +166,7 @@ void sort(It begin, It end, Compare cmp)
 {
     auto ranges = install<Deck>(begin, end, cmp);
     auto range = merge(cmp, std::move(ranges));
-    if constexpr (std::is_same_v<decltype(range), Deck>)
+    if constexpr (is_list<Deck>)
         std::move(range.begin(), range.end(), begin);
 }
 
