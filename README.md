@@ -4,11 +4,13 @@ C++ implementation of [patience sorting](https://en.wikipedia.org/wiki/Patience_
 ### Benchmarking results
 
 Run on (1 X 3200 MHz CPU )
+
 CPU Caches:
-  L1 Data 32K (x1)
-  L1 Instruction 32K (x1)
-  L2 Unified 256K (x1)
-  L3 Unified 3072K (x1)
+*  L1 Data 32K (x1)
+*  L1 Instruction 32K (x1)
+*  L2 Unified 256K (x1)
+*  L3 Unified 3072K (x1)
+
 Load Average: 0.33, 0.90, 0.70
 
 | Container | Sorting algorithm | Time, ns   | RMS |
