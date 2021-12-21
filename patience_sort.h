@@ -27,12 +27,6 @@
 #include <list>
 
 namespace Patience {
-
-template<typename T>
-bool default_compare(const T& lhs, const T& rhs) noexcept
-{
-    return lhs < rhs;
-}
     
 template<typename T>
 static constexpr const bool is_list = std::is_same_v<T, std::list<typename T::value_type>>;
@@ -183,7 +177,7 @@ template<typename It>
 auto patience_sort_cont(It begin, It end)
 {
     using T = typename It::value_type;
-    Patience::sort<std::deque<T>>(begin, end, Patience::default_compare<T>);
+    Patience::sort<std::deque<T>>(begin, end, std::less<T>());
 }
 
 template<typename It, typename Compare>
@@ -197,7 +191,7 @@ template<typename It>
 auto patience_sort_list(It begin, It end)
 {
     using T = typename It::value_type;
-    Patience::sort<std::list<T>>(begin, end, Patience::default_compare<T>);
+    Patience::sort<std::list<T>>(begin, end, std::less<T>());
 }
 
 template<typename It, typename Compare>
