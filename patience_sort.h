@@ -211,5 +211,5 @@ template<typename List>
 auto patience_sort(List& list)
 {
     using T = typename List::value_type;
-    Patience::sort(list, Patience::default_compare<T>);
+    Patience::sort(list, std::less<T>());
 }
