@@ -23,4 +23,4 @@ Load Average: 0.33, 0.90, 0.70
 
 ### External bugs reported
 
- * **[PR clang/49079](https://bugs.llvm.org/show_bug.cgi?id=49079)**: _type mismatch for pointer to template template function_
+ * **[llvm/llvm-project#48423](https://github.com/llvm/llvm-project/issues/48423)**: _type mismatch for pointer to template template function_
